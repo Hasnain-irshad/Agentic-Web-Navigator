@@ -1,0 +1,275 @@
+"""
+GUI TESTING INTERFACE - Quick Start Guide
+
+Tkinter-based graphical interface for testing Agentic Web Navigator.
+"""
+
+# ==============================================================================
+# GUI QUICK START
+# ==============================================================================
+
+LAUNCH THE GUI:
+  python gui.py
+
+NO ADDITIONAL DEPENDENCIES NEEDED
+  ✓ Tkinter is built into Python
+  ✓ No extra packages to install
+
+# ==============================================================================
+# GUI FEATURES
+# ==============================================================================
+
+INPUT SECTION
+  • Task Goal text area (3 lines)
+  • Checkboxes for options:
+    - Headless mode (default: ON, hide browser)
+    - Mock Mode (default: OFF, uses real LLM)
+  • Max Steps spinner (1-100, default: 20)
+  • Control buttons: START, STOP, SAVE, CLEAR
+
+EXECUTION LOG
+  • Real-time execution log with timestamps
+  • Color-coded messages:
+    - Blue: Info
+    - Green: Success
+    - Red: Error
+    - Orange: Warning
+    - Purple: Step indicators
+  • Auto-scrolling output
+  • Timestamps on each line
+
+TASK SUMMARY
+  • Status display (COMPLETED/FAILED/ERROR)
+  • Metrics:
+    - Total steps / Max steps
+    - Successful actions count
+    - Failed actions count
+  • Action sequence (first 10 steps shown)
+  • Remaining step count if more than 10
+
+STATUS INDICATOR
+  • Real-time status display
+  • Color-coded:
+    - Green: RUNNING/COMPLETED
+    - Red: ERROR/FAILED
+    - Orange: STOPPED
+
+# ==============================================================================
+# USAGE EXAMPLES
+# ==============================================================================
+
+EXAMPLE 1: SIMPLE GOOGLE SEARCH
+  1. Launch: python gui.py
+  2. Enter task: "Search for Python on Google"
+  3. Leave defaults (headless, no mock if API key set)
+  4. Click START TASK
+  5. Watch execution in real-time
+  6. View summary and save results
+
+EXAMPLE 2: TESTING WITHOUT API KEY
+  1. Launch: python gui.py
+  2. Enter task: "Test navigation"
+  3. Enable Mock Mode checkbox
+  4. Click START TASK
+  5. Agent uses predefined behavior (no API calls)
+
+EXAMPLE 3: VISIBLE BROWSER MODE
+  1. Launch: python gui.py
+  2. Enter task: "Navigate to example.com"
+  3. Uncheck Headless Mode
+  4. Click START TASK
+  5. Browser window opens, watch navigation
+  6. Task executes in real-time
+
+EXAMPLE 4: CUSTOM STEP LIMIT
+  1. Launch: python gui.py
+  2. Enter complex task
+  3. Set Max Steps to 30 (for complex tasks)
+  4. Click START TASK
+  5. Agent has more steps to complete
+
+# ==============================================================================
+# SAVING RESULTS
+# ==============================================================================
+
+After a task completes:
+  1. Click "Save Result" button
+  2. Choose location and filename
+  3. Results saved as JSON file with:
+     - Complete action sequence
+     - Success/failure metrics
+     - Execution timestamps
+     - Full task summary
+
+File format:
+  navigator_result_YYYYMMDD_HHMMSS.json
+
+# ==============================================================================
+# TROUBLESHOOTING
+# ==============================================================================
+
+GUI doesn't start:
+  Solution: Ensure Python is installed and Tkinter is available
+  Windows: Usually pre-installed with Python
+  Linux: sudo apt-get install python3-tk
+  macOS: Included with Python
+
+Task won't run (API Key Missing):
+  Solution 1: Use Mock Mode (check the checkbox)
+  Solution 2: Add API key to .env file
+
+Browser doesn't appear:
+  Solution: Uncheck "Headless" mode to see browser window
+
+Log shows "No elements found":
+  Solution: This happens on some sites - try different pages
+  Example: Try "Navigate to Wikipedia" instead
+
+Task is too slow:
+  Solution: This is normal - LLM reasoning takes 3-5 seconds per step
+  Each cycle: observe (0.5s) + LLM (3-5s) + execute (1-2s)
+
+# ==============================================================================
+# GUI LAYOUT
+# ==============================================================================
+
+┌──────────────────────────────────────────────────────────────┐
+│  🤖 Agentic Web Navigator - Testing Interface               │
+├──────────────────────────────────────────────────────────────┤
+│                                                               │
+│  TASK CONFIGURATION                                          │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ Task Goal: [Search for Python on Google          ]    │  │
+│  │            [                              ]            │  │
+│  │            [                              ]            │  │
+│  │                                                         │  │
+│  │ ☑ Headless  ☑ Mock Mode  Max Steps: [20]              │  │
+│  │                                                         │  │
+│  │ [▶ START] [⏹ STOP] [💾 SAVE] [🗑 CLEAR] Status:READY │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                                                               │
+│  EXECUTION LOG                                               │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ [14:32:15] Welcome to Agentic Web Navigator           │  │
+│  │ [14:32:15] Instructions:                              │  │
+│  │ [14:32:16] Ready to navigate! 🚀                      │  │
+│  │ [14:32:20] TASK STARTED                               │  │
+│  │ [14:32:20] Goal: Search for Python on Google          │  │
+│  │ [14:32:20] Mode: LIVE                                 │  │
+│  │ [14:32:21] Browser: Headless                          │  │
+│  │ [14:32:21] Max Steps: 20                              │  │
+│  │                                                         │  │
+│  │ [14:32:25] Step 1: GOTO                               │  │
+│  │ [14:32:26] ✓ Navigated to https://google.com         │  │
+│  │ ...                                                    │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                                                               │
+│  TASK SUMMARY                                                │
+│  ┌────────────────────────────────────────────────────────┐  │
+│  │ TASK SUMMARY                                            │  │
+│  │ ══════════════════════════════════════════════         │  │
+│  │ Status: COMPLETED                                      │  │
+│  │ Steps: 5/20                                            │  │
+│  │ Successful: 5                                          │  │
+│  │ Failed: 0                                              │  │
+│  │ Action Sequence:                                       │  │
+│  │   ✓ Step 1: goto                                      │  │
+│  │   ✓ Step 2: click                                     │  │
+│  │   ✓ Step 3: type                                      │  │
+│  │   ✓ Step 4: click                                     │  │
+│  │   ✓ Step 5: done                                      │  │
+│  └────────────────────────────────────────────────────────┘  │
+│                                                               │
+└──────────────────────────────────────────────────────────────┘
+
+# ==============================================================================
+# FEATURES EXPLAINED
+# ==============================================================================
+
+Headless Mode:
+  ON (default)  - Browser runs hidden, faster execution
+  OFF           - Browser window visible, can watch navigation
+
+Mock Mode:
+  OFF (default) - Uses real Groq LLM API (requires API key)
+  ON            - Uses predefined behavior (no API needed, for testing)
+
+Max Steps:
+  Controls how many actions agent can take
+  Lower = faster (fewer retries)
+  Higher = more complex tasks possible
+  Recommended: 10-20 for simple, 30+ for complex
+
+Save Result:
+  Exports complete execution log as JSON
+  Includes all actions, results, timestamps
+  Useful for debugging or batch processing
+
+# ==============================================================================
+# KEYBOARD SHORTCUTS
+# ==============================================================================
+
+Ctrl+C  - Stop task (if running)
+Ctrl+W  - Close GUI
+
+Buttons work with mouse clicks, no keyboard shortcuts needed.
+
+# ==============================================================================
+# PERFORMANCE TIPS
+# ==============================================================================
+
+1. Use Mock Mode first to test without API key
+2. Start with Headless ON for speed
+3. Use reasonable max-steps (20 is good default)
+4. Complex tasks may take 2-5 minutes
+5. Watch the Execution Log for debugging
+
+# ==============================================================================
+# COMMON TASKS TO TRY
+# ==============================================================================
+
+Simple (3-5 steps, ~20s):
+  - "Navigate to Wikipedia"
+  - "Go to example.com"
+  - "Search for Python"
+
+Moderate (5-10 steps, ~1 minute):
+  - "Search for Python on Google"
+  - "Find GitHub Python projects"
+  - "Navigate to Stack Overflow and search"
+
+Complex (10+ steps, 2-5 minutes):
+  - "Find the most starred Python repo on GitHub"
+  - "Search for AI articles and open first result"
+  - "Navigate through multiple pages"
+
+# ==============================================================================
+# ADVANCED: LOOKING AT LOGS
+# ==============================================================================
+
+Each line shows:
+  [HH:MM:SS] Type Message
+
+Color meanings:
+  Blue   = Information
+  Green  = Success (action completed)
+  Purple = Step indicator
+  Red    = Error or failure
+  Orange = Warning or status change
+  Cyan   = Action details
+
+Example log flow:
+  [14:32:15] TASK STARTED (status change)
+  [14:32:20] Goal: ... (info)
+  [14:32:25] Step 1: GOTO (step indicator)
+  [14:32:26] ✓ Navigated to ... (success)
+  [14:32:30] Step 2: CLICK (step indicator)
+  [14:32:31] ✓ Clicked search ... (success)
+
+# ==============================================================================
+
+For command-line usage, see: README.md
+For full API documentation, see: API_REFERENCE.md
+For architecture details, see: ARCHITECTURE.md
+
+# ==============================================================================

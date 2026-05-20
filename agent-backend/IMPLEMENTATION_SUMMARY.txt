@@ -1,0 +1,441 @@
+"""
+IMPLEMENTATION SUMMARY: Two Generic Stop Condition Mechanisms
+
+This document provides exact patches/diffs for the anti-repeat and completion 
+detection mechanisms added to prevent infinite loops in the agentic web navigator.
+
+================================================================================
+PART 1: NEW FILE - core/stop_conditions.py
+================================================================================
+
+A complete new module with:
+- CompletionDetector class: Generic signals for goal achievement
+- RepetitionDetector class: Tracks action signatures and page state changes
+- should_stop() helper function: Main integration point
+
+Key Features:
+✓ Website-agnostic (no hardcoded domains like Daraz/Google)
+✓ Detects search goals by presence of result-like elements + keywords
+✓ Detects navigation goals by URL/domain + page content
+✓ Detects repetitive actions (same signature repeated 3+ times)
+✓ Detects no-progress (page state identical across multiple steps)
+✓ Extracts search queries and navigation targets from natural language goals
+
+DIFF for stop_conditions.py: [NEW FILE - see core/stop_conditions.py]
+
+================================================================================
+PART 2: SessionAgent.execute_command() Integration
+================================================================================
+
+IMPORTS:
+--------
+OLD:
+    try:
+        from core import BrowserController, ObservationExtractor, MemoryStore, AgentReasoner
+        from core.agent_reasoner import MockReasoner
+        from schemas import ActionType
+        from config import Config
+        from utils import get_logger
+    except ImportError:
+        from .browser_controller import BrowserController
+        from .observation_extractor import ObservationExtractor
+        from .memory_store import MemoryStore
+        from .agent_reasoner import AgentReasoner, MockReasoner
+        from ..schemas import ActionType
+        from ..config import Config
+        from ..utils import get_logger
+
+NEW:
+    try:
+        from core import BrowserController, ObservationExtractor, MemoryStore, AgentReasoner
+        from core.agent_reasoner import MockReasoner
+        from core.stop_conditions import should_stop, CompletionDetector, RepetitionDetector
+        from schemas import ActionType
+        from config import Config
+        from utils import get_logger
+    except ImportError:
+        from .browser_controller import BrowserController
+        from .observation_extractor import ObservationExtractor
+        from .memory_store import MemoryStore
+        from .agent_reasoner import AgentReasoner, MockReasoner
+        from .stop_conditions import should_stop, CompletionDetector, RepetitionDetector
+        from ..schemas import ActionType
+        from ..config import Config
+        from ..utils import get_logger
+
+LOOP INITIALIZATION:
+---------------------
+OLD:
+    step_count = 0
+    successful = 0
+    failed = 0
+    actions = []
+    recent_actions = []  # Track recent actions to detect repetition
+    stuck_count = 0
+    try:
+        while not self._memory.is_at_limit():
+
+NEW:
+    step_count = 0
+    successful = 0
+    failed = 0
+    actions = []
+    stop_reason = ""
+    
+    # Initialize generic stop condition detectors
+    completion_detector = CompletionDetector()
+    repetition_detector = RepetitionDetector()
+    
+    try:
+        while not self._memory.is_at_limit():
+
+OBSERVE-REASON-EXECUTE LOOP (simplified):
+-------------------------------------------
+OLD (Complex repetition detection):
+    # 3. REPETITION/STRATEGY SWITCH
+    recent_actions.append(action.action_type.value)
+    if len(recent_actions) >= 3:
+        last_three = recent_actions[-3:]
+        if last_three[0] == last_three[1] == last_three[2]:
+            stuck_count += 1
+            if stuck_count == 1:
+                # Try to switch strategy: scroll, back, or replan
+                logger.info("Detected repetition, switching strategy (scroll/back/replan)")
+                if callback:
+                    callback("info", "Detected repetition, switching strategy")
+                # Try scroll if not just scrolled
+                if "scroll" not in last_three:
+                    action.action_type = ActionType.SCROLL
+                    action.direction = "down"
+                else:
+                    action.action_type = ActionType.BACK
+                # Continue to execute this new action
+            else:
+                logger.info(f"Detected repeated stuck behavior, stopping")
+                if callback:
+                    callback("info", "Detected repeated stuck behavior, stopping")
+                break
+
+    # 4. EXECUTE
+    result = await self._browser.execute_action(action)
+    ...
+    # 5. STORE
+    new_observation = await self._extractor.extract(...)
+    self._memory.add_entry(action, result, new_observation)
+
+    # 6. PLAN/SUBGOAL TRACKING
+    ...
+
+    # 7. CHECK TERMINATION
+    if action.action_type == ActionType.DONE or (self._memory.plan and self._memory.plan.get("completed", False)):
+        logger.info("Command completed (DONE or plan complete)")
+        break
+
+NEW (Generic mechanisms):
+    # 3. EXECUTE
+    result = await self._browser.execute_action(action)
+    step_count += 1
+    if result.success:
+        successful += 1
+    else:
+        failed += 1
+    actions.append({...})
+    if callback:
+        status = "✓" if result.success else "✗"
+        callback("execute", f"{status} {result.message[:50]}")
+
+    # 4. STORE
+    new_observation = await self._extractor.extract(...)
+    self._memory.add_entry(action, result, new_observation)
+
+    # 5. GENERIC STOP CONDITION DETECTION
+    # Check for completion or repetition without relying on LLM
+    is_stopping, stop_msg = should_stop(
+        goal=goal,
+        observation=new_observation,
+        memory=self._memory,
+        last_action=action,
+        last_result=result,
+        completion_detector=completion_detector,
+        repetition_detector=repetition_detector,
+    )
+    
+    if is_stopping:
+        stop_reason = stop_msg
+        logger.info(f"Generic stop condition triggered: {stop_msg}")
+        if callback:
+            callback("info", f"Stopping: {stop_msg}")
+        break
+
+    # 6. PLAN/SUBGOAL TRACKING
+    ...
+
+    # 7. CHECK EXPLICIT TERMINATION
+    # If LLM explicitly returns DONE, stop immediately
+    if action.action_type == ActionType.DONE:
+        stop_reason = "Explicit DONE from LLM"
+        logger.info("Command completed (explicit DONE action)")
+        break
+
+    # Human-like delay
+    await asyncio.sleep(random.uniform(0.8, 1.5))
+
+RESULT CONSTRUCTION:
+---------------------
+OLD:
+    # Store in command history
+    command_result = {
+        "goal": goal,
+        "status": "completed" if successful > failed else "partial",
+        "steps": step_count,
+        "successful": successful,
+        "failed": failed,
+        "actions": actions
+    }
+    self._command_history.append(command_result)
+    return command_result
+
+NEW:
+    # Store in command history
+    command_result = {
+        "goal": goal,
+        "status": "completed" if stop_reason else ("partial" if successful > failed else "failed"),
+        "stop_reason": stop_reason,
+        "steps": step_count,
+        "successful": successful,
+        "failed": failed,
+        "actions": actions
+    }
+    self._command_history.append(command_result)
+    return command_result
+
+================================================================================
+PART 3: WebNavigatorAgent._execute_loop() Integration (main.py)
+================================================================================
+
+IMPORTS:
+--------
+OLD:
+    from core import (
+        BrowserController,
+        ObservationExtractor,
+        MemoryStore,
+        AgentReasoner,
+    )
+    from core.agent_reasoner import MockReasoner
+    from schemas import ActionType
+    from config import Config
+    from utils import get_logger
+
+NEW:
+    from core import (
+        BrowserController,
+        ObservationExtractor,
+        MemoryStore,
+        AgentReasoner,
+    )
+    from core.agent_reasoner import MockReasoner
+    from core.stop_conditions import should_stop, CompletionDetector, RepetitionDetector
+    from schemas import ActionType
+    from config import Config
+    from utils import get_logger
+
+LOOP INITIALIZATION:
+---------------------
+OLD:
+    async def _execute_loop(self) -> dict:
+        """Main observe → reason → execute loop."""
+        logger.info("=" * 50)
+        logger.info("STARTING AGENT LOOP")
+        logger.info("=" * 50)
+        
+        while not self._memory.is_at_limit():
+
+NEW:
+    async def _execute_loop(self) -> dict:
+        """Main observe → reason → execute loop."""
+        logger.info("=" * 50)
+        logger.info("STARTING AGENT LOOP")
+        logger.info("=" * 50)
+        
+        # Initialize generic stop condition detectors
+        completion_detector = CompletionDetector()
+        repetition_detector = RepetitionDetector()
+        
+        last_action = None
+        last_result = None
+        
+        while not self._memory.is_at_limit():
+
+OBSERVE-REASON-EXECUTE LOOP:
+-----------------------------
+OLD:
+    # 4. STORE - Add to memory
+    new_observation = await self._extractor.extract(...)
+    self._memory.add_entry(action, result, new_observation)
+    
+    # 5. CHECK TERMINATION
+    if action.action_type == ActionType.DONE:
+        logger.info("=" * 50)
+        logger.info("TASK COMPLETED")
+        logger.info("=" * 50)
+        break
+    
+    # Human-like delay between actions (randomized 1-3 seconds)
+    import random
+    await asyncio.sleep(random.uniform(1.0, 3.0))
+
+NEW:
+    # 4. STORE - Add to memory
+    new_observation = await self._extractor.extract(...)
+    self._memory.add_entry(action, result, new_observation)
+    last_action = action
+    last_result = result
+    
+    # 5. GENERIC STOP CONDITION DETECTION
+    # Check for completion or repetition without relying solely on LLM
+    is_stopping, stop_msg = should_stop(
+        goal=self._goal,
+        observation=new_observation,
+        memory=self._memory,
+        last_action=action,
+        last_result=result,
+        completion_detector=completion_detector,
+        repetition_detector=repetition_detector,
+    )
+    
+    if is_stopping:
+        logger.info(f"Generic stop condition triggered: {stop_msg}")
+        break
+    
+    # 6. CHECK EXPLICIT TERMINATION
+    # If LLM explicitly returns DONE, stop immediately
+    if action.action_type == ActionType.DONE:
+        logger.info("=" * 50)
+        logger.info("TASK COMPLETED")
+        logger.info("=" * 50)
+        break
+    
+    # Human-like delay between actions (randomized 1-3 seconds)
+    import random
+    await asyncio.sleep(random.uniform(1.0, 3.0))
+
+================================================================================
+PART 4: MemoryStore (NO CHANGES REQUIRED)
+================================================================================
+
+MemoryStore already exposes _history attribute and properties needed by 
+RepetitionDetector. The internal _history list contains MemoryEntry objects
+with complete action signatures:
+- action.action_type (ActionType enum)
+- action.selector (CSS selector)
+- action.value (input value)
+- action.key (keyboard key)
+
+No modifications needed to MemoryStore.
+
+================================================================================
+PART 5: Tests - test_stop_conditions.py
+================================================================================
+
+[NEW FILE - see test_stop_conditions.py]
+
+Test suite covering:
+✓ Utility functions (extract_domain, normalize_text)
+✓ CompletionDetector:
+  - Search goal detection (keyword matching + result elements)
+  - Navigation goal detection (domain + page content)
+  - No completion on empty pages
+  - Generic keyword matching
+✓ RepetitionDetector:
+  - Same action repeated detection
+  - No false positives on varied actions
+  - No-progress detection (identical page state)
+✓ Main should_stop function
+
+Run with:
+    python -m pytest test_stop_conditions.py -v
+
+================================================================================
+BEHAVIORAL CHANGES
+================================================================================
+
+BEFORE:
+- Loop only stopped when LLM returned ActionType.DONE
+- Naive repetition detection (only 3 consecutive identical action types)
+- No completion detection (relied on LLM or max steps)
+- Could repeat indefinitely if LLM kept deciding non-DONE actions
+
+AFTER:
+- Loop stops on either LLM DONE or generic completion/repetition detection
+- Smart action signature tracking (type, selector, value, key)
+- Page state monitoring (URL + title hash) for no-progress detection
+- Generic goal-based completion heuristics:
+  * Search goals: URL change + result keywords + result elements
+  * Navigation goals: target domain in URL + page content
+  * Generic keywords: goal words appearing in page/URL
+- No more website-specific logic (works across any site)
+- Returns stop_reason in result dict for debugging
+
+EXAMPLE BEHAVIORS:
+1. Search task: "search for laptop on daraz"
+   - User navigates to daraz.pk
+   - Searches for "laptop"
+   - Page shows results with product links
+   → Agent stops automatically (no DONE action needed)
+
+2. Repetition detected: "click this button"
+   - Agent clicks button 3 times
+   - Page state doesn't change
+   → Agent stops with "Action click repeated 3 times"
+
+3. No progress: Typing in search box
+   - Agent types search query
+   - Hits Enter
+   - Types again on same URL (no new page)
+   → Agent stops with "No page state change detected"
+
+================================================================================
+INTEGRATION CHECKLIST
+================================================================================
+
+✓ stop_conditions.py created (core module)
+✓ SessionAgent imports updated
+✓ SessionAgent._execute_command loop refactored
+✓ SessionAgent result dict updated (includes stop_reason)
+✓ WebNavigatorAgent imports updated
+✓ WebNavigatorAgent._execute_loop refactored
+✓ test_stop_conditions.py created
+✓ All changes are backwards compatible
+✓ No breaking changes to existing APIs
+✓ Indentation and syntax verified
+
+================================================================================
+USAGE EXAMPLE
+================================================================================
+
+from core.session_agent import SessionAgent
+
+agent = SessionAgent(max_steps_per_command=20)
+await agent.start_session()
+
+# Generic stop conditions work automatically - no config needed!
+result = await agent.execute_command("search for laptop on daraz")
+
+print(f"Status: {result['status']}")
+print(f"Stop reason: {result.get('stop_reason', 'Not stopped')}")
+print(f"Steps taken: {result['steps']}")
+
+# Result might be:
+# {
+#     'goal': 'search for laptop on daraz',
+#     'status': 'completed',
+#     'stop_reason': 'Search results found for laptop',
+#     'steps': 5,
+#     'successful': 5,
+#     'failed': 0,
+#     'actions': [...]
+# }
+
+================================================================================
+"""

@@ -1,0 +1,76 @@
+/* App.css */
+
+/* Root body & font */
+body, html, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #231f20; /* grey-black background */
+  color: #eaeaea; /* text color white */
+}
+
+/* Top bar container */
+.top-bar {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  gap: 6px;
+  background-color: #121212; /* grey-black */
+  border-bottom: 1px solid#dd9a0a; /* subtle dark gold separator */
+}
+
+/* Buttons in top bar */
+.top-bar button {
+  background-color: #dd9a0a; /* dark gold buttons */
+  color: #000000;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.top-bar button:hover {
+  background-color: #dd9a0a; /* light gold hover */
+  color: #231f20;
+}
+
+/* URL input */
+.top-bar input {
+  flex: 1;
+  padding: 20px 14px;
+  border-radius: 4px;
+  border: 1px solid #dd9a0a;
+  outline: none;
+  background-color: #3a3a3a;
+  color: #eaeaea;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.top-bar input:focus {
+  border-color: #ffffff;
+}
+
+/* Webview container takes remaining space */
+webview {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background-color: #231f20;
+}
+
+/* Optional: Add subtle scrollbar styles for webview */
+webview::-webkit-scrollbar {
+  width: 8px;
+}
+
+webview::-webkit-scrollbar-track {
+  background: #231f20;
+}
+
+webview::-webkit-scrollbar-thumb {
+  background-color: #d7c074;
+  border-radius: 4px;
+}

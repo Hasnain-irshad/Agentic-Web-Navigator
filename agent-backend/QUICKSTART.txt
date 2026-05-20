@@ -1,0 +1,298 @@
+"""
+QUICK START GUIDE - Agentic AI Web Navigator
+
+Follow these steps to get started.
+"""
+
+# ==============================================================================
+# STEP 1: PREREQUISITES
+# ==============================================================================
+
+Before you begin:
+  ✓ Python 3.9 or higher
+  ✓ pip or conda package manager
+  ✓ ~500MB disk space (for Playwright browsers)
+  ✓ Internet connection (for Groq API, Playwright browsers)
+
+Get your Groq API key (free):
+  1. Visit https://console.groq.com
+  2. Sign up or log in
+  3. Go to API Keys section
+  4. Create a new API key
+  5. Copy the key (you'll need it in Step 4)
+
+# ==============================================================================
+# STEP 2: SETUP PYTHON ENVIRONMENT
+# ==============================================================================
+
+In your terminal/PowerShell, run:
+
+# Create virtual environment
+python -m venv venv
+
+# Activate it (choose based on your OS):
+# On Windows:
+venv\Scripts\activate
+
+# On macOS/Linux:
+source venv/bin/activate
+
+# You should see (venv) in your terminal prompt
+
+# ==============================================================================
+# STEP 3: INSTALL DEPENDENCIES
+# ==============================================================================
+
+# Install Python packages
+pip install -r requirements.txt
+
+# Install Playwright browsers (required)
+playwright install chromium
+
+# This downloads the browser binary (~200MB)
+# Be patient, it may take a few minutes
+
+# ==============================================================================
+# STEP 4: CONFIGURE API KEY
+# ==============================================================================
+
+# Copy the environment template
+cp .env.template .env
+
+# Edit .env file and add your Groq API key:
+# GROQ_API_KEY=your_actual_key_from_console.groq.com
+
+# Other options you can configure:
+# LLM_MODEL=llama-3.1-8b-instant
+# LLM_TEMPERATURE=0.1
+# HEADLESS=true  (set to false to see browser)
+# MAX_STEPS=20
+
+# ==============================================================================
+# STEP 5: VERIFY INSTALLATION
+# ==============================================================================
+
+# Run the quickstart validator
+python quickstart.py
+
+# This checks:
+  ✓ All packages installed
+  ✓ Configuration valid
+  ✓ Project structure correct
+  ✓ Agent can initialize
+
+# If all checks pass, you're ready!
+
+# ==============================================================================
+# STEP 6: TRY YOUR FIRST TASK
+# ==============================================================================
+
+EASIEST: Use the GUI Interface
+  python gui.py
+  
+  ✓ Graphical interface (point and click)
+  ✓ Real-time execution log
+  ✓ Task summary with metrics
+  ✓ Save results to JSON
+  ✓ Mock mode for testing without API key
+  
+  See GUI_GUIDE.txt for detailed instructions.
+
+ALTERNATIVE: Use Command Line
+  
+  Option A: Test with mock (no API key needed)
+  python main.py --goal "Test navigation" --mock --visible
+  
+  Option B: Real task (requires Groq API key)
+  python main.py --goal "Search for Python on Google" --visible
+  
+  Option C: Run example tasks
+  python examples/sample_tasks.py
+
+# ==============================================================================
+# STEP 7: UNDERSTAND THE OUTPUT
+# ==============================================================================
+
+When you run a task, you'll see:
+
+  OBSERVE → What the agent sees on the page
+  REASON  → LLM decides what to do next
+  EXECUTE → Browser performs the action
+  STORE   → Memory records the action
+
+Example output:
+  ✓ Step 1: GOTO → Navigated to https://google.com
+  ✓ Step 2: CLICK → Clicked on Search
+  ✓ Step 3: TYPE → Typed "Python"
+  ✓ Step 4: CLICK → Clicked Search Button
+  ✓ Step 5: DONE → Task completed
+
+Final summary shows:
+  - Goal achieved?
+  - Total steps taken
+  - Successful vs failed actions
+  - Full action sequence
+
+# ==============================================================================
+# COMMON COMMANDS
+# ==============================================================================
+
+# Search for something
+python main.py --goal "Search for 'artificial intelligence'" --visible
+
+# Navigate and click
+python main.py --goal "Go to GitHub and search for Python projects" --visible
+
+# Test without API key
+python main.py --goal "Test navigation" --mock
+
+# Show browser window
+python main.py --goal "Your task" --visible
+
+# Limit steps
+python main.py --goal "Your task" --max-steps 10
+
+# Save results
+python main.py --goal "Your task" --output results.json
+
+# Run tests
+python test_suite.py
+
+# ==============================================================================
+# COMMAND LINE HELP
+# ==============================================================================
+
+python main.py --help
+
+Options:
+  --goal TEXT           Task description (required)
+  --max-steps INTEGER   Maximum steps (default: 20)
+  --visible            Show browser (default: hidden)
+  --mock               Use mock reasoner, no API calls
+  --output TEXT        Save JSON results to file
+
+# ==============================================================================
+# PYTHON API USAGE
+# ==============================================================================
+
+from main import WebNavigatorAgent
+import asyncio
+
+async def my_task():
+    agent = WebNavigatorAgent(
+        goal="Find something on the web",
+        max_steps=15,
+        headless=False,  # Show browser
+        use_mock=False,   # Use real LLM
+    )
+    result = await agent.run()
+    
+    print(f"Status: {result['status']}")
+    print(f"Steps: {result['total_steps']}")
+    
+    return result
+
+asyncio.run(my_task())
+
+# ==============================================================================
+# TROUBLESHOOTING
+# ==============================================================================
+
+Problem: "GROQ_API_KEY not set"
+Solution:
+  1. Create .env file (copy from .env.template)
+  2. Add your Groq API key
+  3. Restart terminal/Python
+
+Problem: "playwright install failed"
+Solution:
+  1. Check internet connection
+  2. Run: playwright install --with-deps
+  3. Try again
+
+Problem: "No elements found on page"
+Solution:
+  1. Run with --visible to see page
+  2. Page might need scroll
+  3. Try simpler task first
+
+Problem: "Browser hangs/timeout"
+Solution:
+  1. Press Ctrl+C to stop
+  2. Check BROWSER_TIMEOUT in .env
+  3. Try simpler page (example.com)
+
+Problem: "API rate limited"
+Solution:
+  1. Wait a few minutes
+  2. Groq free tier has limits
+  3. Try --mock mode for testing
+
+# ==============================================================================
+# PROJECT STRUCTURE
+# ==============================================================================
+
+agentic_web_navigator/
+├── main.py              # Entry point - run this
+├── quickstart.py        # Environment validator
+├── test_suite.py        # Component tests
+├── config.py            # Configuration
+├── README.md            # Full documentation
+├── ARCHITECTURE.md      # Technical architecture
+├── .env.template        # Copy to .env and add API key
+├── requirements.txt     # Python dependencies
+│
+├── core/
+│   ├── browser_controller.py    # Browser automation
+│   ├── observation_extractor.py # Extract page elements
+│   ├── agent_reasoner.py        # LLM decision engine
+│   └── memory_store.py          # Action history
+│
+├── schemas/
+│   └── actions.py               # Action definitions
+│
+├── utils/
+│   ├── logger.py                # Logging setup
+│   └── validators.py            # Helper validation
+│
+└── examples/
+    └── sample_tasks.py          # Example tasks
+
+# ==============================================================================
+# NEXT STEPS
+# ==============================================================================
+
+1. ✓ Install and verify (you're here!)
+2. → Try --mock mode to understand how it works
+3. → Add your Groq API key to .env
+4. → Run real tasks
+5. → Read ARCHITECTURE.md for deep dive
+6. → Customize for your use case
+7. → Deploy to production
+
+# ==============================================================================
+# SUPPORT & RESOURCES
+# ==============================================================================
+
+Documentation:
+  - README.md: Features and usage
+  - ARCHITECTURE.md: Technical details
+  - QUICKSTART.py: Validation script
+  - test_suite.py: Component tests
+
+Resources:
+  - Groq Console: https://console.groq.com
+  - Playwright Docs: https://playwright.dev
+  - Llama Models: https://www.llama.com
+
+# ==============================================================================
+
+Good luck! Happy web navigating! 🚀
+
+To start, run:
+  python quickstart.py
+
+Then:
+  python main.py --goal "Search for Python on Google" --visible --mock
+
+# ==============================================================================
