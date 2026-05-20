@@ -1,56 +1,123 @@
 # Agentic Web Navigator
 
-An autonomous web-navigation system that completes multi-step web tasks from a natural-language goal. A Python agent reasons about each step using an LLM and drives a custom Electron browser to actually perform the actions.
+An autonomous web-navigation system that completes multi-step web tasks from a natural-language goal.  
+A Python agent reasons about each step using an LLM and drives a custom Electron browser to perform real browser actions.
 
-## Architecture
+---
 
-The project has two processes that talk over a WebSocket:
+# Architecture
 
+The project contains two processes communicating over a WebSocket connection.
+
+```text
 +---------------------------+         WebSocket          +-----------------------------+
 |      agent-backend        | <------------------------> |      electron-browser       |
-|  (FastAPI + LLM planner)  |     ws://127.0.0.1:8000/ws |  (Electron + React UI)      |
+|  (FastAPI + LLM planner)  |     ws://127.0.0.1:8000/ws|  (Electron + React UI)      |
 |                           |                            |                             |
 |  - Task planner           |                            |  - Address bar / tabs       |
 |  - World model + memory   |                            |  - <webview> for sites      |
 |  - Action reasoner (Groq) |                            |  - History + bookmarks      |
 +---------------------------+                            +-----------------------------+
+```
 
+The backend decides **what** action should happen next.  
+The Electron browser executes the action on a real webpage and sends back updated observations.
 
+This loop continues until the task is completed.
 
-The backend decides **what** to do next. The Electron browser executes the action on a real page and reports back the new observation. Loop continues until the goal is satisfied.
+---
 
-## Repository layout
+# Repository Structure
 
+```text
 .
-├── agent-backend/      Python FastAPI WebSocket server + LLM agent
-└── electron-browser/   Electron + React + TypeScript desktop browser
+├── agent-backend/      # FastAPI WebSocket server + LLM agent
+└── electron-browser/   # Electron + React + TypeScript desktop browser
+```
 
+---
 
+# Features
 
-## Requirements
+- Autonomous browser navigation
+- LLM-powered task planning
+- Real webpage interaction using Electron
+- WebSocket-based communication
+- Multi-step reasoning and execution
+- Browser history and bookmarks
+- CLI and GUI support
+- Playwright integration for automation
 
-- **Python 3.9+** (for the backend)
-- **Node.js 18+** and **npm 7+** (for the Electron app)
-- A **Groq API key** — free tier at https://console.groq.com
+---
 
-## Setup
+# Requirements
 
-### 1. Backend
+Before running the project, ensure you have:
+
+- Python 3.9+
+- Node.js 18+
+- npm 7+
+- A Groq API key
+
+Get a free API key from:
+
+👉 https://console.groq.com
+
+---
+
+# Setup
+
+## 1. Backend Setup
+
+Navigate to the backend folder:
 
 ```bash
 cd agent-backend
+```
+
+Create a virtual environment:
+
+```bash
 python -m venv venv
+```
 
-# Windows
+Activate the environment:
+
+### Windows
+
+```bash
 venv\Scripts\activate
-# macOS / Linux
+```
+
+### macOS / Linux
+
+```bash
 source venv/bin/activate
+```
 
+Install dependencies:
+
+```bash
 pip install -r requirements.txt
+```
+
+Install Playwright Chromium:
+
+```bash
 playwright install chromium
-Create a .env file in agent-backend/ (copy from .env.example) and fill in your key:
+```
 
+---
 
+## Environment Configuration
+
+Create a `.env` file inside `agent-backend/`.
+
+You can copy values from `.env.example`.
+
+Example configuration:
+
+```env
 GROQ_API_KEY=your_groq_key_here
 LLM_MODEL=llama-3.3-70b-versatile
 LLM_TEMPERATURE=0.2
@@ -59,62 +126,173 @@ HEADLESS=false
 BROWSER_TIMEOUT=30000
 MAX_STEPS=25
 OBSERVATION_MAX_ELEMENTS=80
-2. Electron browser
+```
 
+---
+
+## 2. Electron Browser Setup
+
+Navigate to the Electron application:
+
+```bash
 cd electron-browser
+```
+
+Install dependencies:
+
+```bash
 npm install
-Running
-You need two terminals — start the backend first so the Electron app can connect to its WebSocket.
+```
 
-Terminal 1 — backend:
+---
 
+# Running the Project
 
+You need **two terminals** running simultaneously.
+
+---
+
+## Terminal 1 — Start Backend
+
+```bash
 cd agent-backend
-# activate the venv first (see Setup)
 python server.py
-Server starts on ws://127.0.0.1:8000/ws.
+```
 
-Terminal 2 — Electron browser:
+The backend server starts at:
 
+```text
+ws://127.0.0.1:8000/ws
+```
 
+---
+
+## Terminal 2 — Start Electron Browser
+
+```bash
 cd electron-browser
 npm start
-Wait for webpack to finish — the Electron window opens automatically. Type a goal into the agent chat sidebar to start a task.
+```
 
-Common commands
-Backend
-Command	Purpose
-python server.py	Run the WebSocket agent server (dev, autoreload)
-python main.py "<goal>"	Run a one-shot task in the CLI
-python gui.py	Standalone Tkinter GUI for the agent
-pytest test_suite.py	Run the test suite
-Electron
-Command	Purpose
-npm start	Dev: webpack-dev-server + Electron with hot reload
-npm run build	Production build of main + renderer
-npm run package	Build a distributable installer
-npm run lint	ESLint
-npm test	Jest
-How a task runs
-User enters a goal in the Electron sidebar.
-Renderer sends the goal + a session_id over the WebSocket.
-Backend WSAgent plans the next action (goto, click, type, scroll, done, …) using the Groq LLM, given the current page observation.
-Electron executes the action against the active <webview>, captures a fresh observation (visible interactive elements, headings, URL).
-Observation is sent back to the backend, which decides the next action — or terminates with a result.
-See agent-backend/ARCHITECTURE.md and electron-browser/src for deeper details.
+Wait for Webpack compilation to finish.
 
-Troubleshooting
-TypeError: Cannot read properties of undefined (reading 'ipcRenderer') — you opened http://localhost:1212 in a regular browser instead of using the Electron window that npm start launches. The preload script only exposes window.electron inside Electron.
-Backend not connecting — confirm python server.py is running and listening on 127.0.0.1:8000 before launching the Electron app.
-Playwright errors on first run — re-run playwright install chromium inside the activated venv.
-License
-This project is for educational and research use.
+The Electron desktop application will launch automatically.
 
+---
 
+# How It Works
 
-Two notes:
+1. User enters a goal in the Electron sidebar.
+2. The renderer sends the goal and session ID through WebSocket.
+3. The backend agent plans the next action using the Groq LLM.
+4. Electron executes the action on the active webpage.
+5. The browser captures a fresh observation:
+   - URL
+   - headings
+   - visible interactive elements
+6. The updated observation is sent back to the backend.
+7. The loop continues until the task is completed.
 
-- I used the env keys I saw in your `.env` for the example block — values are placeholders, no real secret leaks.
-- I didn't add a license badge / CI badge / screenshots — add those once you have them.
+---
 
-Once it's pasted, GitHub will commit it directly to `main` on the remote. Pull that commit locally with `git pull` so your local stays in sync.
+# Common Commands
+
+## Backend Commands
+
+| Command | Purpose |
+|---|---|
+| `python server.py` | Run WebSocket agent server |
+| `python main.py "<goal>"` | Run one-shot CLI task |
+| `python gui.py` | Launch standalone Tkinter GUI |
+| `pytest test_suite.py` | Run backend tests |
+
+---
+
+## Electron Commands
+
+| Command | Purpose |
+|---|---|
+| `npm start` | Development mode with hot reload |
+| `npm run build` | Production build |
+| `npm run package` | Create distributable installer |
+| `npm run lint` | Run ESLint |
+| `npm test` | Run Jest tests |
+
+---
+
+# Troubleshooting
+
+## Electron IPC Error
+
+### Error
+
+```text
+TypeError: Cannot read properties of undefined (reading 'ipcRenderer')
+```
+
+### Cause
+
+You opened:
+
+```text
+http://localhost:1212
+```
+
+inside a regular browser instead of the Electron app.
+
+### Solution
+
+Run the Electron application using:
+
+```bash
+npm start
+```
+
+---
+
+## Backend Not Connecting
+
+Ensure the backend server is running before launching Electron:
+
+```bash
+python server.py
+```
+
+---
+
+## Playwright Errors
+
+If Chromium fails on first run:
+
+```bash
+playwright install chromium
+```
+
+Run the command inside the activated virtual environment.
+
+---
+
+# Documentation
+
+For deeper implementation details:
+
+- `agent-backend/ARCHITECTURE.md`
+- `electron-browser/src`
+
+---
+
+# License
+
+This project is intended for educational and research purposes.
+
+---
+
+# Notes
+
+- Example `.env` values are placeholders only.
+- Add screenshots, badges, and CI status later if needed.
+- After updating the README on GitHub, sync your local repository:
+
+```bash
+git pull
+```
